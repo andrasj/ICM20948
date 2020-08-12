@@ -5,17 +5,14 @@
 
 #define TRYorRETURN(retBoolAction,msg)  if (!(retBoolAction)) { printf("FAILED:");printf(msg);printf("\n"); return false; }
 #define sleepMs(ms)                     usleep(1000*ms)
+//#define DBG printf
+#define DBG(...) ;
 
-//-----------------------------------------------------------------------------------------------
 
 ICM20948::ICM20948() : m_lastBank(-1),m_spi(),m_gyroScale(0.0),m_accScale(0.0)
 {
 }
 
-/*-----------------------------------------------------------------------------------------------
-                                    REGISTER READ & WRITE
-usage: use these methods to read and write ICM20948 registers over SPI
------------------------------------------------------------------------------------------------*/
 bool ICM20948::NeedsBankSwitch(uint16_t addr,uint8_t& bank,uint8_t& regAddr)
 {
     bank = addr >> 7;
@@ -30,6 +27,7 @@ bool ICM20948::WriteReg( uint16_t addr, uint8_t data )
     if (NeedsBankSwitch(addr,bank,regAddr)){
         TRYorRETURN(m_spi.Write(REG_BANK_SEL,bank<<4),"Switch Bank");
     }
+    DBG("Write byte 0x%02X to register 0x%02X in bank %d\n",data,regAddr,bank);
 
     TRYorRETURN(m_spi.Write(regAddr,data),"Writing data");
     
@@ -176,7 +174,7 @@ bool ICM20948::EnableGyro(GyroSampleRate rate,GyroScale scale)
         case ICM20948::GyroScale::MAX_2000DPS: m_gyroScale = 1.0/16.4; break;
         default:m_gyroScale=0; break;
     }
-    printf("m_gyroscale: %f\n",m_gyroScale);
+    DBG("m_gyroscale: %f\n",m_gyroScale);
     TRYorRETURN(
         ReadReg(REG_PWR_MGMT_2, curVal)
         && WriteReg(REG_PWR_MGMT_2, curVal & ~BIT_PWR_GYRO_STBY)
@@ -198,7 +196,7 @@ bool ICM20948::EnableAcc(AccSampleRate rate,AccScale scale)
 {
     DisableAcc();
     uint8_t curVal;
-    TRYorRETURN(WriteReg(REG_GYRO_CONFIG_1, (uint8_t)rate | (uint8_t)scale)
+    TRYorRETURN(WriteReg(REG_ACCEL_CONFIG, (uint16_t)rate | (uint16_t)scale)
         ,"Set acc config");
     switch (scale)
     {
@@ -208,7 +206,7 @@ bool ICM20948::EnableAcc(AccSampleRate rate,AccScale scale)
         case ICM20948::AccScale::MAX_16G: m_accScale = 1.0/2048; break;
         default:m_accScale=0; break;
     }
-    printf("m_accScale: %f\n",m_accScale);
+    DBG("m_accScale: %f\n",m_accScale);
     TRYorRETURN(
         ReadReg(REG_PWR_MGMT_2, curVal)
         && WriteReg(REG_PWR_MGMT_2, curVal & ~BIT_PWR_ACCEL_STBY)
@@ -223,9 +221,9 @@ bool ICM20948::ReadGyro(double& gx,double& gy,double& gz)
     TRYorRETURN(ReadRegs(REG_GYRO_XOUT_H_SH,data,nbBytes)
         ,"Reading gyro data");
 //    printf("raw: 0x%2X%2X 0x%2X%2X 0x%2X%2X\n",data[0],data[1],data[2],data[3],data[4],data[5]);
-    gx = ((double)(int16_t)((data[0] << 8) | data[1])) * m_gyroScale;
-    gy = ((double)(int16_t)((data[2] << 8) | data[3])) * m_gyroScale;
-    gz = ((double)(int16_t)((data[4] << 8) | data[5])) * m_gyroScale;
+    gx = ((double)(int16_t)((data[0] << 8) | (int16_t)data[1])) * m_gyroScale;
+    gy = ((double)(int16_t)((data[2] << 8) | (int16_t)data[3])) * m_gyroScale;
+    gz = ((double)(int16_t)((data[4] << 8) | (int16_t)data[5])) * m_gyroScale;
     return true;
 }
 
@@ -235,7 +233,7 @@ bool ICM20948::ReadAcc(double& ax,double& ay,double& az)
     uint8_t data[nbBytes];
     TRYorRETURN(ReadRegs(REG_ACCEL_XOUT_H_SH,data,nbBytes)
         ,"Reading acc data");
-//    printf("raw: 0x%2X%2X 0x%2X%2X 0x%2X%2X\n",data[0],data[1],data[2],data[3],data[4],data[5]);
+    printf("raw: 0x%2X%2X 0x%2X%2X 0x%2X%2X %f\n",data[0],data[1],data[2],data[3],data[4],data[5], m_accScale);
     ax = ((double)(int16_t)((data[0] << 8) | data[1])) * m_accScale;
     ay = ((double)(int16_t)((data[2] << 8) | data[3])) * m_accScale;
     az = ((double)(int16_t)((data[4] << 8) | data[5])) * m_accScale;
@@ -263,14 +261,34 @@ bool ICM20948::ReadAccGyrRaw(int16_t* accRaw,int16_t* gyrRaw)
     TRYorRETURN(ReadRegs(REG_ACCEL_XOUT_H_SH,data,nbBytes)
         ,"Reading acc data");
 
-    accRaw[0] = (data[0]<<8)|data[1];
-    accRaw[1] = (data[2]<<8)|data[3];
-    accRaw[2] = (data[4]<<8)|data[5];
-    gyrRaw[0] = (data[6]<<8)|data[7];
-    gyrRaw[1] = (data[8]<<8)|data[9];
-    gyrRaw[2] = (data[12]<<8)|data[11];
-    // memcpy(accRaw,data,3*sizeof(int16_t));
-    // memcpy(gyrRaw,data+6,3*sizeof(int16_t));
+    accRaw[0] = (int16_t)((int16_t)data[0]<<8) |(int16_t)data[1];
+    accRaw[1] = (int16_t)((int16_t)data[2]<<8) |(int16_t)data[3];
+    accRaw[2] = (int16_t)((int16_t)data[4]<<8) |(int16_t)data[5];
+    gyrRaw[0] = (int16_t)((int16_t)data[6]<<8) |(int16_t)data[7];
+    gyrRaw[1] = (int16_t)((int16_t)data[8]<<8) |(int16_t)data[9];
+    gyrRaw[2] = (int16_t)((int16_t)data[10]<<8)|(int16_t)data[11];
+    return true;
+}
+
+bool ICM20948::ReadAccGyrMagRaw(int16_t* accRaw,int16_t* gyrRaw,int16_t* magRaw)
+{
+    const uint8_t nbBytes = 23; //(acc:6 + gyr:6 + tmp:2 + magST1:1 + mag:6 + magtmp:1+magST2:1)
+    uint8_t data[nbBytes];
+    TRYorRETURN(ReadRegs(REG_ACCEL_XOUT_H_SH,data,nbBytes)
+        ,"Reading acc data");
+
+    accRaw[0] = (int16_t)((int16_t)data[0]<<8) |(int16_t)data[1];
+    accRaw[1] = (int16_t)((int16_t)data[2]<<8) |(int16_t)data[3];
+    accRaw[2] = (int16_t)((int16_t)data[4]<<8) |(int16_t)data[5];
+    gyrRaw[0] = (int16_t)((int16_t)data[6]<<8) |(int16_t)data[7];
+    gyrRaw[1] = (int16_t)((int16_t)data[8]<<8) |(int16_t)data[9];
+    gyrRaw[2] = (int16_t)((int16_t)data[10]<<8)|(int16_t)data[11];
+
+    magRaw[0] = (int16_t)((int16_t)data[16]<<8) |(int16_t)data[15];
+    magRaw[1] = -(int16_t)((int16_t)data[18]<<8) |(int16_t)data[17];//negative for compensating different axis orientation
+    magRaw[2] = -(int16_t)((int16_t)data[20]<<8) |(int16_t)data[19];//negative for compensating different axis orientation
+
+    return true;
 }
 
 bool ICM20948::DisableMag()
@@ -311,15 +329,14 @@ bool ICM20948::EnableMag(MagSampleRate rate)
 
 bool ICM20948::ReadMag(double& mx,double& my,double& mz)
 {
-    const double magScale = 4912.0 / 32752.0;
     const uint8_t nbBytes = 9;
     uint8_t data[nbBytes];
     TRYorRETURN(ReadRegs(REG_EXT_SLV_SENS_DATA_00,data,nbBytes)
         ,"Reading external i2c data");
-    //printf("ST1: 0x%2X data: 0x%2X%2X 0x%2X%2X 0x%2X%2X ST2:0x%2X\n",data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[8]);
-    mx = ((double)(int16_t)((data[2] << 8) | data[1])) * magScale;
-    my = ((double)-(int16_t)((data[4] << 8) | data[3])) * magScale;
-    mz = ((double)-(int16_t)((data[6] << 8) | data[5])) * magScale;
+    DBG("ST1: 0x%02X data: 0x%02X%02X 0x%02X%02X 0x%02X%02X ST2:0x%02X\n",data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[8]);
+    mx = ((double)(int16_t)((data[2] << 8)  | (int16_t)data[1])) * m_magScale;
+    my = -((double)(int16_t)((data[4] << 8) | (int16_t)data[3])) * m_magScale;//negative for compensating different axis orientation
+    mz = -((double)(int16_t)((data[6] << 8) | (int16_t)data[5])) * m_magScale;//negative for compensating different axis orientation
     return true;
 }
 

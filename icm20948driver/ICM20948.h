@@ -53,6 +53,8 @@ class ICM20948 {
 
     double m_gyroScale;
     double m_accScale;
+    const double m_magScale = 4912.0 / 32752.0;
+
 
     bool NeedsBankSwitch(uint16_t addr,uint8_t& bank,uint8_t& regAddr);
     bool WriteReg( uint16_t addr, uint8_t data );
@@ -77,8 +79,10 @@ class ICM20948 {
     bool ReadAcc(double& ax,double& ay,double& az);
     bool ReadAccGyr(double& ax,double& ay,double& az,double& gx,double& gy,double& gz);
     bool ReadAccGyrRaw(int16_t* accRaw,int16_t* gyrRaw);
+    bool ReadAccGyrMagRaw(int16_t* accRaw,int16_t* gyrRaw,int16_t* magRaw);
     bool DisableMag();
     bool EnableMag(MagSampleRate rate);
+    double GetMagSensitivity(){return m_magScale;}//conversion to uT
     bool ReadMag(double& mx,double& my,double& mz);
     uint8_t whoami();
     uint8_t whoamiMag();

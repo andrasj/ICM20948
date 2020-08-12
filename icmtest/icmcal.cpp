@@ -18,9 +18,9 @@ int main()
 	if (!imu.Init(0,0)) { printf("Init failed"); return 1;}
 
 	unsigned int me = imu.whoami();
-	printf("WhoAmI: 0x%x\n",me);
+//	printf("WhoAmI: 0x%x\n",me);
 	unsigned int meMag = imu.whoamiMag();
-	printf("WhoAmIMagnetometer: 0x%x\n",meMag);
+//	printf("WhoAmIMagnetometer: 0x%x\n",meMag);
 
 	imu.EnableGyro(ICM20948::GyroSampleRate::LPF_12HZ,ICM20948::GyroScale::MAX_500DPS);
 	imu.EnableAcc(ICM20948::AccSampleRate::LPF_12HZ,ICM20948::AccScale::MAX_4G);
@@ -76,7 +76,8 @@ void findMinMaxAcc(ICM20948& imu)
 	minX=minY=minZ=maxX=maxY=maxZ=0;
 
 	printf("place device for minX acceration\n");
-	printf("press enter twice, first to find minX, second time, the calibration point will be taken\n");
+	printf("press enter to start measuring, then press one of x,X,y,Y,z,Z to set min/Max of the axis.\n");
+	printf("press s to stop and display a summary\n");
 	char tmp;
 	while (std::cin.read(&tmp,1) && tmp != '\n') usleep(100*1000);
     auto nextPrintTime = system_clock::now() + milliseconds(500);
@@ -130,10 +131,10 @@ void findMinMaxAcc(ICM20948& imu)
 
 		usleep(100*1000);
 	}
-	printf("Here are your settings:\n");
-	printf("minX: %6d maxX: %6d  dx: %5d  LSB/g: %8.5f \n",minX,maxX,maxX+minX,(maxX-minX)/2.0);
-	printf("minY: %6d maxY: %6d  dx: %5d  LSB/g: %8.5f \n",minY,maxY,maxY+minY,(maxY-minY)/2.0);
-	printf("minZ: %6d maxZ: %6d  dx: %5d  LSB/g: %8.5f \n",minZ,maxZ,maxZ+minZ,(maxZ-minZ)/2.0);
+	printf("Here are your accCalib settings:\n");
+	printf("minX: %6d maxX: %6d  '0-offset': %5d  LSB/g: %8.5f \n",minX,maxX,maxX+minX,(maxX-minX)/2.0);
+	printf("minY: %6d maxY: %6d  '0-offset': %5d  LSB/g: %8.5f \n",minY,maxY,maxY+minY,(maxY-minY)/2.0);
+	printf("minZ: %6d maxZ: %6d  '0-offset': %5d  LSB/g: %8.5f \n",minZ,maxZ,maxZ+minZ,(maxZ-minZ)/2.0);
 
 
 }
