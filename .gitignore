@@ -1,3 +1,4 @@
 *.a
 *.o
 icmtest/icmfusion
+icmtest/icmcal

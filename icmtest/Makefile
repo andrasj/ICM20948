@@ -8,7 +8,10 @@ LIBS = ../Fusion/Fusion.a ../icm20948driver/icm20948driver.a
 $(info $(APPS))
 
 icmfusion: icmfusion.o
-	$(CXX) $(OBJ_FILES) $(LIBS) -o icmfusion
+	$(CXX) icmfusion.o $(LIBS) -o icmfusion
+
+icmcal: icmcal.o
+	$(CXX) icmcal.o $(LIBS) -o icmcal
 
 all: $(APPS)
 

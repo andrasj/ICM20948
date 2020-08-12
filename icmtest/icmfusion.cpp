@@ -40,11 +40,16 @@ int main()
 	gyroscopeSensitivity.axis.y = imu.GetGyroSensitivity(); // 1.0f;
 	gyroscopeSensitivity.axis.z = imu.GetGyroSensitivity(); // 1.0f;
 
+/*
+minX: -16476 maxX:  16276  dx:  -200  LSB/g: 16376.00000 
+minY: -16452 maxY:  16170  dx:  -282  LSB/g: 16311.00000 
+minZ: -16740 maxZ:  16380  dx:  -360  LSB/g: 16560.00000 
+*/
 	// replace these values with actual sensitivity in g per lsb as specified in accelerometer datasheet
 	FusionVector3 accelerometerSensitivity;
-	accelerometerSensitivity.axis.x = imu.GetAccSensitivity(); // 1.0f;
-	accelerometerSensitivity.axis.y = imu.GetAccSensitivity(); // 1.0f;
-	accelerometerSensitivity.axis.z = imu.GetAccSensitivity(); // 1.0f;
+	accelerometerSensitivity.axis.x = 1.0/16376; //imu.GetAccSensitivity(); // 1.0f;
+	accelerometerSensitivity.axis.y = 1.0/16311 ; //imu.GetAccSensitivity(); // 1.0f;
+	accelerometerSensitivity.axis.z = 1.0/16560 ; //imu.GetAccSensitivity(); // 1.0f;
 
 	// replace these values with actual hard-iron bias in uT if known
 	// FusionVector3 hardIronBias;
@@ -53,10 +58,10 @@ int main()
 	// hardIronBias.axis.z = 0.0f;
 
     // Initialise gyroscope bias correction algorithm
-    FusionBiasInitialise(&fusionBias, 2.0f, samplePeriod); // stationary threshold = 0.5 degrees per second
+    FusionBiasInitialise(&fusionBias, 0.5f, samplePeriod); // stationary threshold = 0.5 degrees per second
 
     // Initialise AHRS algorithm
-    FusionAhrsInitialise(&fusionAhrs, 0.8f); // gain = 0.5
+    FusionAhrsInitialise(&fusionAhrs, 0.5f); // gain = 0.5
 
     // Set optional magnetic field limits
     //FusionAhrsSetMagneticField(&fusionAhrs, 20.0f, 70.0f); // valid magnetic field range = 20 uT to 70 uT
